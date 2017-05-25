@@ -1,0 +1,62 @@
+/**
+ * MaxFile name: MovingAverageSimple
+ * Using fourth order runge kutta method to calculate next point of y value 
+ * Calcualte next to next for 16 y points given equation 3y^2 + 2
+ * Compare actual value and the expected value of output
+ */
+
+package movingaveragesimple;
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEType;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
+
+class MovingAverageSimpleKernel extends Kernel {
+    
+    private static final DFEType type = dfeFloat(8,24);
+
+	MovingAverageSimpleKernel(KernelParameters parameters) {
+		super(parameters);
+
+		// input parameters
+		/* 
+		   k - derivatives of y given x(dy/dx)
+		   y - values of y given x
+		   x - coordinates of given x point
+		   h - interval
+		*/
+		DFEVar h = io.scalarInput("h", type);   //constant value
+		DFEVar x = io.scalarInput("x", type);   //constant value
+		DFEVar k = io.input("dy_dx", type);
+		DFEVar y = io.input("y", type);
+		
+		// initialize other logical variables
+        DFEVar y_t, dy_t, dy_m, h_h, h_six, x_h;    
+
+        h_h = h * 0.5;
+        h_six = h / 6.0;
+        x_h = x + h_h;
+        
+        /* 
+         fourth order runge kutta algorithm calculation step
+         equations to test whether it works right or not 
+        */
+        y_t = y + h_h * k;                  //yt[i]=y[i]+hh*dydx[i]
+        dy_t = 3.0 * y_t * y_t + 2.0;       //dy/dx = 3y^2 + 2
+
+        y_t = y + h_h * dy_t;               //yt[i]=y[i]+hh*dyt[i]
+        dy_m = 3.0 * y_t * y_t + 2.0;       //dy/dx = 3y^2 + 2
+
+        y_t  = y + h * dy_m;                //yt[i]=y[i]+h*dym[i]
+        dy_m = dy_m + dy_t;                 //dym[i] += dyt[i]
+        dy_t = 3.0 * y_t * y_t + 2.0;       //dy/dx = 3y^2 + 2
+
+        // yout[i]=y[i]+h6*(dydx[i]+dyt[i]+2.0*dym[i])
+		DFEVar result = y + h_six * (k + dy_t + 2.0 * dy_m);
+
+		// output value
+		io.output("y_output", result, type);
+		
+	}
+}
